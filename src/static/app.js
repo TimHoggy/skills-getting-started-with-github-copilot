@@ -27,11 +27,38 @@ document.addEventListener("DOMContentLoaded", () => {
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
           <p><strong>Participants:</strong></p>
           <ul>
-            ${details.participants.map(p => `<li>${p}</li>`).join('')}
+            ${details.participants.map(p => `<li>${p} <span class="delete-participant" data-activity="${name}" data-email="${p}">&times;</span></li>`).join('')}
           </ul>
         `;
 
         activitiesList.appendChild(activityCard);
+
+        // Add event listeners for delete buttons
+        const deleteButtons = activityCard.querySelectorAll('.delete-participant');
+        deleteButtons.forEach(button => {
+          button.addEventListener('click', async () => {
+            const activity = button.dataset.activity;
+            const email = button.dataset.email;
+            try {
+              const response = await fetch(
+                `/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`,
+                {
+                  method: "POST",
+                }
+              );
+              const result = await response.json();
+              if (response.ok) {
+                // Refresh activities
+                fetchActivities();
+              } else {
+                alert(result.detail || "An error occurred");
+              }
+            } catch (error) {
+              alert("Failed to unregister. Please try again.");
+              console.error("Error unregistering:", error);
+            }
+          });
+        });
 
         // Add option to select dropdown
         const option = document.createElement("option");
@@ -66,6 +93,8 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        // Refresh activities to show the new participant
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
